@@ -1,0 +1,27 @@
+{
+  "name": "twobee-os",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sistema interno TwoBee: clienti, tracking, reporting, flussi email",
+  "type": "module",
+  "engines": {
+    "node": ">=23.4.0"
+  },
+  "scripts": {
+    "start": "node app/server.js",
+    "dev": "node --watch-path=app app/server.js",
+    "db:reset": "node app/db.js --reset",
+    "backup:decrypt": "node backup/decrypt.js",
+    "doctor": "node app/doctor.js",
+    "user:list": "node app/user-cli.js list",
+    "user:add": "node app/user-cli.js add",
+    "user:password": "node app/user-cli.js password",
+    "user:remove": "node app/user-cli.js remove",
+    "qa": "node qa/daily-check.js",
+    "extract:klaviyo": "node reporting/extract/klaviyo.js",
+    "extract:meta": "node reporting/extract/meta.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}

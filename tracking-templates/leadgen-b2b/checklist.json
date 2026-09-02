@@ -1,0 +1,167 @@
+{
+  "archetype": "leadgen-b2b",
+  "title": "Lead gen B2B",
+  "version": 1,
+  "note": "Checklist di setup tracking per siti a generazione lead. Gli id delle voci sono usati come chiave a DB: non rinominarli, al massimo aggiungine di nuovi.",
+  "sections": [
+    {
+      "id": "config",
+      "title": "Configurazione base",
+      "items": [
+        {
+          "id": "gtm-installed",
+          "title": "Container GTM installato",
+          "detail": "Snippet head + noscript body su tutte le pagine, landing page incluse."
+        },
+        {
+          "id": "ga4-config",
+          "title": "Tag di configurazione GA4",
+          "detail": "Google Tag con Measurement ID, trigger All Pages."
+        },
+        {
+          "id": "cross-domain",
+          "title": "Misurazione cross-domain",
+          "detail": "Se le landing stanno su un dominio separato, elencare tutti i domini in GA4 > Configure tag settings, altrimenti la sessione si spezza e il lead risulta self-referral."
+        },
+        {
+          "id": "internal-traffic",
+          "title": "Filtro traffico interno",
+          "detail": "IP agenzia e cliente esclusi, filtro attivo (non in Testing)."
+        },
+        {
+          "id": "utm-convention",
+          "title": "Convenzione UTM documentata",
+          "detail": "Senza una convenzione condivisa il report per canale diventa inutilizzabile dopo due mesi di campagne."
+        }
+      ]
+    },
+    {
+      "id": "variables",
+      "title": "Variabili",
+      "items": [
+        {
+          "id": "dv-form-id",
+          "title": "Variabile per identificare il form",
+          "detail": "ID o classe del form, per distinguere contatto generico, richiesta preventivo e download."
+        },
+        {
+          "id": "dv-click-text",
+          "title": "Variabili di click integrate attivate",
+          "detail": "Click Text, Click URL, Click Classes, Click ID abilitate in GTM."
+        },
+        {
+          "id": "dv-page-path",
+          "title": "Variabile pagina di conversione",
+          "detail": "Per attribuire il lead alla pagina che l'ha generato."
+        }
+      ]
+    },
+    {
+      "id": "ga4-events",
+      "title": "Eventi GA4",
+      "items": [
+        {
+          "id": "ev-generate-lead",
+          "title": "generate_lead sull'invio form",
+          "detail": "Meglio agganciato alla conferma di invio reale (thank-you page o risposta AJAX) che al click sul pulsante: il click conta anche i tentativi falliti."
+        },
+        {
+          "id": "ev-form-start",
+          "title": "form_start",
+          "detail": "Primo campo compilato. Serve a misurare l'abbandono del form."
+        },
+        {
+          "id": "ev-phone-click",
+          "title": "Click su numero di telefono",
+          "detail": "Trigger su link tel:. Su B2B è spesso il canale principale."
+        },
+        {
+          "id": "ev-email-click",
+          "title": "Click su indirizzo email",
+          "detail": "Trigger su link mailto:."
+        },
+        {
+          "id": "ev-whatsapp-click",
+          "title": "Click su WhatsApp",
+          "detail": "Trigger su wa.me / api.whatsapp.com."
+        },
+        {
+          "id": "ev-file-download",
+          "title": "Download materiali",
+          "detail": "PDF, listini, case study: trigger su click a file. Indicatore di intento alto."
+        },
+        {
+          "id": "ev-calendar-booking",
+          "title": "Prenotazione call",
+          "detail": "Calendly, HubSpot Meetings o simili: se è in iframe serve l'evento postMessage, il click non basta."
+        },
+        {
+          "id": "mark-conversions",
+          "title": "Eventi marcati come conversioni",
+          "detail": "generate_lead e click telefono come key event in GA4."
+        }
+      ]
+    },
+    {
+      "id": "ads",
+      "title": "Google Ads",
+      "items": [
+        {
+          "id": "ads-linked",
+          "title": "Account Ads collegato a GA4"
+        },
+        {
+          "id": "ads-conversion-import",
+          "title": "Conversioni importate da GA4",
+          "detail": "Oppure tag di conversione dedicato: scegliere una sola fonte per non contare doppio."
+        },
+        {
+          "id": "ads-enhanced-conversions",
+          "title": "Enhanced conversions",
+          "detail": "Passaggio email/telefono hashati dal form. Recupera attribuzione persa."
+        }
+      ]
+    },
+    {
+      "id": "meta",
+      "title": "Meta Pixel",
+      "items": [
+        {
+          "id": "meta-base",
+          "title": "Pixel base via GTM"
+        },
+        {
+          "id": "meta-lead",
+          "title": "Evento Lead",
+          "detail": "Con value stimato del lead, se il cliente ha un valore medio noto: serve alle ottimizzazioni."
+        }
+      ]
+    },
+    {
+      "id": "qa",
+      "title": "Consenso e collaudo",
+      "items": [
+        {
+          "id": "consent-mode",
+          "title": "Consent Mode v2 + CMP",
+          "detail": "Consenso di default 'denied', tag in attesa."
+        },
+        {
+          "id": "spam-filter",
+          "title": "Submit di spam esclusi",
+          "detail": "I bot che compilano i form gonfiano generate_lead. Verificare honeypot o captcha prima di fidarsi del dato."
+        },
+        {
+          "id": "preview-debug",
+          "title": "Collaudo in GTM Preview e GA4 DebugView",
+          "detail": "Provare ogni form e ogni CTA, anche da mobile."
+        },
+        {
+          "id": "crm-match",
+          "title": "Riconciliazione con il CRM",
+          "detail": "Confronto lead nel CRM vs generate_lead su 30 giorni. Uno scostamento grosso indica form non tracciati o spam."
+        }
+      ]
+    }
+  ]
+}

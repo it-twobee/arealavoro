@@ -1,0 +1,176 @@
+{
+  "archetype": "ecommerce",
+  "title": "E-commerce (Shopify)",
+  "version": 1,
+  "note": "Checklist di setup tracking per e-commerce Shopify. Gli id delle voci sono usati come chiave a DB: non rinominarli, al massimo aggiungine di nuovi.",
+  "sections": [
+    {
+      "id": "config",
+      "title": "Configurazione base",
+      "items": [
+        {
+          "id": "gtm-installed",
+          "title": "Container GTM installato",
+          "detail": "Snippet head + noscript body in theme.liquid. Su Shopify Plus va aggiunto anche a checkout.liquid, altrimenti il purchase non viene tracciato."
+        },
+        {
+          "id": "ga4-config",
+          "title": "Tag di configurazione GA4",
+          "detail": "Google Tag con Measurement ID, trigger All Pages. Verificare che non ci sia anche un gtag hardcoded nel tema (doppio conteggio)."
+        },
+        {
+          "id": "referral-exclusions",
+          "title": "Esclusione referral pagamenti",
+          "detail": "In GA4 (Admin > Data Streams > Configure tag settings) escludere paypal.com, stripe.com, checkout.shopify.com e il PSP usato. Senza questo le vendite risultano referral."
+        },
+        {
+          "id": "internal-traffic",
+          "title": "Filtro traffico interno",
+          "detail": "IP agenzia e cliente esclusi in GA4. Attivare il filtro (non lasciarlo in Testing)."
+        },
+        {
+          "id": "currency-value",
+          "title": "Valuta coerente",
+          "detail": "Il campo currency negli eventi ecommerce deve essere ISO-4217 (EUR) e coerente con la valuta di GA4, altrimenti i ricavi non vengono sommati."
+        }
+      ]
+    },
+    {
+      "id": "datalayer",
+      "title": "DataLayer e variabili",
+      "items": [
+        {
+          "id": "dl-ecommerce-object",
+          "title": "Push dataLayer con oggetto ecommerce",
+          "detail": "Per view_item, add_to_cart, begin_checkout, purchase: items[] con item_id, item_name, price, quantity, più value, currency, transaction_id sul purchase."
+        },
+        {
+          "id": "dv-items",
+          "title": "Variabile Data Layer: ecommerce.items",
+          "detail": "Versione 2, senza valore di default."
+        },
+        {
+          "id": "dv-value",
+          "title": "Variabile Data Layer: ecommerce.value"
+        },
+        {
+          "id": "dv-currency",
+          "title": "Variabile Data Layer: ecommerce.currency"
+        },
+        {
+          "id": "dv-transaction-id",
+          "title": "Variabile Data Layer: ecommerce.transaction_id",
+          "detail": "Serve anche per la deduplica degli ordini e per l'event_id di Meta."
+        }
+      ]
+    },
+    {
+      "id": "ga4-events",
+      "title": "Eventi GA4",
+      "items": [
+        {
+          "id": "ev-view-item",
+          "title": "view_item",
+          "detail": "Trigger Custom Event sul push della scheda prodotto."
+        },
+        {
+          "id": "ev-add-to-cart",
+          "title": "add_to_cart",
+          "detail": "Attenzione ai temi con aggiunta via AJAX: il push deve avvenire dopo la risposta del carrello, non al click."
+        },
+        {
+          "id": "ev-begin-checkout",
+          "title": "begin_checkout"
+        },
+        {
+          "id": "ev-purchase",
+          "title": "purchase",
+          "detail": "Sulla thank-you page. Verificare che non spari due volte al refresh della pagina."
+        },
+        {
+          "id": "mark-conversions",
+          "title": "purchase e begin_checkout marcati come conversioni",
+          "detail": "GA4 > Admin > Events > Mark as key event."
+        }
+      ]
+    },
+    {
+      "id": "meta",
+      "title": "Meta Pixel",
+      "items": [
+        {
+          "id": "meta-base",
+          "title": "Pixel base via GTM",
+          "detail": "Un solo punto di installazione: se è attiva anche l'app Facebook di Shopify, disattivare una delle due."
+        },
+        {
+          "id": "meta-events",
+          "title": "ViewContent, AddToCart, InitiateCheckout, Purchase",
+          "detail": "Con content_ids, content_type, value e currency. I content_ids devono combaciare con quelli del catalogo."
+        },
+        {
+          "id": "meta-dedup",
+          "title": "event_id per deduplica",
+          "detail": "Necessario se è attiva anche la Conversion API, altrimenti gli acquisti vengono contati due volte."
+        },
+        {
+          "id": "meta-capi",
+          "title": "Conversion API attiva (opzionale)",
+          "detail": "Via app Shopify o server-side. Migliora l'attribuzione con iOS e ad blocker."
+        }
+      ]
+    },
+    {
+      "id": "klaviyo",
+      "title": "Klaviyo",
+      "items": [
+        {
+          "id": "kl-onsite",
+          "title": "Onsite JS attivo",
+          "detail": "App Shopify o snippet manuale. Verificare che carichi su tutte le pagine."
+        },
+        {
+          "id": "kl-viewed-product",
+          "title": "Viewed Product",
+          "detail": "Serve a browse abandonment: senza questo il flusso non parte."
+        },
+        {
+          "id": "kl-added-to-cart",
+          "title": "Added to Cart",
+          "detail": "Serve al flusso carrello abbandonato lato Klaviyo."
+        },
+        {
+          "id": "kl-identify",
+          "title": "Identificazione email",
+          "detail": "Form di iscrizione e checkout devono passare l'email a Klaviyo, altrimenti gli eventi restano anonimi."
+        }
+      ]
+    },
+    {
+      "id": "qa",
+      "title": "Consenso e collaudo",
+      "items": [
+        {
+          "id": "consent-mode",
+          "title": "Consent Mode v2 + CMP",
+          "detail": "Tag in attesa del consenso, con ad_user_data e ad_personalization gestiti. Verificare che il consenso di default sia 'denied' prima dell'interazione."
+        },
+        {
+          "id": "preview-debug",
+          "title": "Collaudo in GTM Preview e GA4 DebugView",
+          "detail": "Percorrere l'intero funnel: prodotto, carrello, checkout, acquisto."
+        },
+        {
+          "id": "purchase-match",
+          "title": "Riconciliazione ordini",
+          "detail": "Confronto ordini Shopify vs purchase GA4 su 7 giorni: scostamento accettabile sotto il 5%."
+        },
+        {
+          "id": "no-duplicates",
+          "title": "Nessun doppio conteggio",
+          "detail": "Cercare gtag, fbq e klaviyo.js hardcoded nel tema oltre a quelli in GTM."
+        }
+      ]
+    }
+  ]
+}

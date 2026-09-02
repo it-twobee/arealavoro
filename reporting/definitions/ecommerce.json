@@ -1,0 +1,48 @@
+{
+  "archetype": "ecommerce",
+  "title": "E-commerce — panoramica 30 giorni",
+  "version": 1,
+  "note": "Metriche e dimensioni usano i nomi della GA4 Data API, gli stessi che scegli in Esplora. Per l'elenco completo disponibile sulla property usa il pulsante \"Metriche disponibili\" nel tab Report.",
+  "ga4": {
+    "totals": {
+      "metrics": [
+        "sessions",
+        "totalUsers",
+        "newUsers",
+        "engagedSessions",
+        "engagementRate",
+        "averageSessionDuration",
+        "addToCarts",
+        "checkouts",
+        "ecommercePurchases",
+        "purchaseRevenue"
+      ]
+    },
+    "breakdowns": [
+      {
+        "id": "canale",
+        "title": "Per canale di acquisizione",
+        "dimensions": ["sessionDefaultChannelGroup"],
+        "metrics": ["sessions", "engagedSessions", "ecommercePurchases", "purchaseRevenue"],
+        "orderBy": "sessions",
+        "limit": 15
+      },
+      {
+        "id": "prodotti",
+        "title": "Prodotti più visti",
+        "dimensions": ["itemName"],
+        "metrics": ["itemsViewed", "itemsAddedToCart", "itemsPurchased", "itemRevenue"],
+        "orderBy": "itemsViewed",
+        "limit": 20
+      },
+      {
+        "id": "dispositivo",
+        "title": "Per dispositivo",
+        "dimensions": ["deviceCategory"],
+        "metrics": ["sessions", "ecommercePurchases", "purchaseRevenue"],
+        "orderBy": "sessions",
+        "limit": 5
+      }
+    ]
+  }
+}

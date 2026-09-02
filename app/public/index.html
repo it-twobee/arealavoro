@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TwoBee OS</title>
+    <script>
+      // Applica il tema prima del primo paint, così non c'è flash di bianco.
+      (() => {
+        const saved = localStorage.getItem('twobee-theme');
+        const system = matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+        document.documentElement.dataset.theme = saved ?? system;
+      })();
+    </script>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 3l9.5 5.2 1.5 10.4L20 26.9 10.1 28 3.4 20.2 5 9.6z' fill='%23FFC501'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="/css/style.css" />
+  </head>
+  <body>
+    <!-- Banda per gli errori dell'interfaccia. Deve stare separata dalla
+         schermata di accesso: usare quella per mostrare errori la faceva
+         ricomparire, dando l'impressione che servisse una password. -->
+    <div id="fatal" class="fatal" hidden></div>
+
+    <!-- LOGIN:START — tutto ciò che sta fra questi due marcatori viene rimosso
+         dal server quando l'accesso è libero: se il markup non arriva, nessuna
+         cache del browser può far ricomparire la schermata. -->
+    <div id="login" class="login-screen" hidden>
+      <form class="login-card" data-form="login">
+        <img class="brand-logo" data-logo="light" src="/img/logo-black.png" alt="TwoBee" />
+        <img class="brand-logo" data-logo="dark" src="/img/logo-white.png" alt="TwoBee" />
+        <p class="muted">Sistema interno. Accesso riservato.</p>
+
+        <label>
+          Email
+          <input name="email" type="email" autocomplete="username" required />
+        </label>
+        <label>
+          Password
+          <span class="pw-field">
+            <input name="password" type="password" autocomplete="current-password" required />
+            <button
+              class="pw-eye"
+              type="button"
+              data-action="toggle-password"
+              title="Mostra la password"
+              aria-label="Mostra la password"
+            >
+              👁
+            </button>
+          </span>
+          <small class="muted">Usa l'occhio per controllare quello che hai digitato.</small>
+        </label>
+
+        <p class="error" data-error hidden></p>
+        <div class="notice" data-no-users hidden>
+          Nessun account configurato. Creane uno dal terminale:
+          <pre class="code">npm run user:add -- tua@email.it</pre>
+        </div>
+
+        <button class="btn primary" type="submit" data-submit>Entra</button>
+      </form>
+    </div>
+    <script>
+      // Rete di sicurezza: se app.js non si carica, il form farebbe un invio
+      // nativo in GET con la password nell'URL. Questo listener è indipendente
+      // da form.onsubmit, quindi convivono.
+      document
+        .querySelector('[data-form="login"]')
+        ?.addEventListener('submit', (event) => event.preventDefault());
+    </script>
+    <!-- LOGIN:END -->
+
+    <header class="topbar">
+      <a class="brand" href="#/clients">
+        <!-- Due varianti del logo ufficiale, scambiate dal CSS in base al tema:
+             lettering nero sul chiaro, bianco sullo scuro. -->
+        <img class="brand-logo" data-logo="light" src="/img/logo-black.png" alt="TwoBee" />
+        <img class="brand-logo" data-logo="dark" src="/img/logo-white.png" alt="TwoBee" />
+      </a>
+      <nav class="topnav">
+        <a href="#/clients" data-nav="clients">Clienti</a>
+        <a href="#/impostazioni" data-nav="impostazioni">Impostazioni</a>
+        <a href="#/backup" data-nav="backup">Backup</a>
+        <span class="nav-disabled" title="Modulo 5 — in arrivo">QA</span>
+        <span class="nav-disabled" title="Modulo 6 — in arrivo">Klaviyo</span>
+      </nav>
+
+      <button class="vault-pill" data-vault-pill type="button">
+        <span data-vault-icon>🔒</span>
+        <span data-vault-text>Vault</span>
+      </button>
+      <div class="theme-switch" role="group" aria-label="Tema">
+        <button type="button" data-theme-set="light" title="Tema chiaro" aria-label="Tema chiaro">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4.2" />
+            <path d="M12 2v2M12 20v2M2 12h2M20 12h2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M19.1 4.9l-1.4 1.4M6.3 17.7l-1.4 1.4" />
+          </svg>
+        </button>
+        <button type="button" data-theme-set="dark" title="Tema scuro" aria-label="Tema scuro">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.5 14.6A8.5 8.5 0 1 1 9.4 3.5a6.8 6.8 0 0 0 11.1 11.1Z" />
+          </svg>
+        </button>
+      </div>
+      <div class="account">
+        <button class="account-btn" type="button" data-account-menu>
+          <span data-account-email></span>
+        </button>
+        <div class="account-pop" data-account-pop hidden>
+          <button class="link-btn" type="button" data-action="change-password">Cambia password</button>
+          <button class="link-btn" type="button" data-action="logout">Esci</button>
+        </div>
+      </div>
+      <span class="build">v0.1</span>
+    </header>
+
+    <!-- Cambio password -->
+    <dialog id="dlg-password">
+      <form class="form" method="dialog" data-form="password">
+        <h2>Cambia password di accesso</h2>
+        <p class="muted">
+          Al salvataggio tutte le sessioni aperte vengono chiuse e va rifatto l'accesso.
+        </p>
+        <label>
+          Password attuale
+          <input name="currentPassword" type="password" autocomplete="current-password" />
+        </label>
+        <label>
+          Nuova password
+          <input name="newPassword" type="password" autocomplete="new-password" />
+        </label>
+        <label>
+          Ripeti la nuova password
+          <input name="confirm" type="password" autocomplete="new-password" />
+        </label>
+        <p class="error" data-error hidden></p>
+        <div class="form-actions">
+          <button class="btn ghost" type="button" data-action="cancel">Annulla</button>
+          <button class="btn primary" type="submit">Aggiorna password</button>
+        </div>
+      </form>
+    </dialog>
+
+    <main id="view"></main>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <!-- Vista lista clienti -->
+    <template id="tpl-list">
+      <section class="page">
+        <div class="page-head">
+          <div>
+            <h1>Clienti</h1>
+            <p class="muted" data-count></p>
+          </div>
+          <div class="page-actions">
+            <input
+              type="search"
+              id="filter"
+              placeholder="Cerca cliente…"
+              autocomplete="off"
+            />
+            <button class="btn primary" data-action="new">+ Aggiungi cliente</button>
+          </div>
+        </div>
+
+        <div data-qa-alert></div>
+
+        <div class="legend">
+          <span><i class="dot active"></i> Tracking attivo</span>
+          <span><i class="dot partial"></i> Parziale</span>
+          <span><i class="dot todo"></i> Da fare</span>
+        </div>
+
+        <div class="table-wrap">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Cliente</th>
+              <th>Archetipo</th>
+              <th>CMS</th>
+              <th>GTM</th>
+              <th>GA4</th>
+              <th>Meta</th>
+              <th>Klaviyo</th>
+              <th>GSC</th>
+              <th title="Controllo giornaliero">QA</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody data-rows></tbody>
+        </table>
+        </div>
+        <p class="empty" data-empty hidden>Nessun cliente corrisponde alla ricerca.</p>
+      </section>
+    </template>
+
+    <!-- Scheda cliente -->
+    <template id="tpl-detail">
+      <section class="page">
+        <a class="back" href="#/clients">← Tutti i clienti</a>
+        <div class="page-head">
+          <div>
+            <h1 data-title></h1>
+            <p class="muted" data-subtitle></p>
+          </div>
+          <div class="page-actions">
+            <button class="btn danger-ghost" data-action="delete">Elimina</button>
+          </div>
+        </div>
+
+        <div class="tabs" role="tablist">
+          <button class="tab" data-tab="chiavi" role="tab">Chiavi</button>
+          <button class="tab" data-tab="tracking" role="tab">Tracking</button>
+          <button class="tab" data-tab="report" role="tab">Report</button>
+          <button class="tab" data-tab="credenziali" role="tab">Credenziali</button>
+          <button class="tab" data-tab="note" role="tab">Note</button>
+        </div>
+
+        <!-- Chiavi: token e chiavi API per piattaforma, un solo valore ciascuna -->
+        <div class="panel" data-panel="chiavi" hidden>
+          <p class="muted">
+            Chiavi e token delle piattaforme, uno per servizio. Sono i dati che servono
+            alle integrazioni, non gli accessi personali: quelli stanno in Credenziali.
+          </p>
+          <div data-creds-locked hidden>
+            <div class="placeholder">
+              <h3>Chiavi cifrate</h3>
+              <p data-creds-locked-msg></p>
+              <button class="btn primary" data-action="unlock-from-panel">Sblocca</button>
+            </div>
+          </div>
+          <div data-creds-list hidden></div>
+        </div>
+
+        <div class="panel" data-panel="tracking" hidden>
+          <div data-qa-block></div>
+
+          <form class="form" data-form="tracking">
+            <div class="grid">
+              <label>
+                Archetipo
+                <select name="archetype" data-archetypes></select>
+                <small class="muted">Determina quali canali sono pertinenti.</small>
+              </label>
+              <label>
+                CMS / piattaforma
+                <select name="cms" data-cms-select></select>
+              </label>
+              <label>
+                ID container GTM
+                <input name="gtm_container_id" placeholder="GTM-XXXXXXX" autocomplete="off" />
+              </label>
+              <label>
+                Sito web
+                <input name="website_url" placeholder="es. dominiocliente.it" autocomplete="off" spellcheck="false" />
+                <small class="muted">Serve alla verifica automatica del tracking.</small>
+              </label>
+              <label>
+                Pixel ID Meta
+                <input name="meta_pixel_id" placeholder="es. 1234567890123456" autocomplete="off" inputmode="numeric" />
+                <small class="muted">Solo cifre. Serve al controllo giornaliero del Pixel.</small>
+              </label>
+            </div>
+
+            <h3>Stato canali</h3>
+            <div class="grid statuses" data-statuses></div>
+
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Salva tracking</button>
+              <span class="saved" data-saved hidden>Salvato ✓</span>
+            </div>
+          </form>
+
+          <h3>Verifica automatica</h3>
+          <div class="verify-bar">
+            <button class="btn" type="button" data-action="verify">Verifica ora</button>
+            <span class="muted" data-verify-hint></span>
+          </div>
+          <div data-verify-result></div>
+
+          <h3>
+            Checklist di setup
+            <span class="muted" data-checklist-title></span>
+          </h3>
+          <div data-checklist></div>
+        </div>
+
+
+        <div class="panel" data-panel="report" hidden>
+          <form class="form" data-form="report-config">
+            <div class="grid">
+              <label>
+                Property ID GA4
+                <input name="ga4_property_id" placeholder="es. 123456789" autocomplete="off" inputmode="numeric" />
+                <small class="muted">Il numero della property, non il Measurement ID G-XXXX.</small>
+              </label>
+              <label data-lead-event hidden>
+                Evento di lead (funnel B2B)
+                <input name="lead_event" placeholder="generate_lead" autocomplete="off" spellcheck="false" />
+                <small class="muted">Vuoto = <code>generate_lead</code>. È il passaggio 2 del funnel.</small>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button class="btn" type="submit">Salva property</button>
+              <span class="saved" data-saved hidden>Salvato ✓</span>
+            </div>
+          </form>
+
+          <div data-report-blockers></div>
+
+          <div class="verify-bar">
+            <button class="btn primary" type="button" data-action="run-report">Genera report GA4</button>
+            <button class="btn" type="button" data-action="ga4-metadata">Metriche disponibili</button>
+            <button class="btn primary" type="button" data-action="run-klaviyo">Estrai dati Klaviyo</button>
+            <button class="btn primary" type="button" data-action="run-meta">Estrai dati Meta</button>
+            <span class="muted" data-report-period></span>
+          </div>
+
+          <div data-klaviyo-blockers></div>
+          <div data-meta-blockers></div>
+
+          <div data-report-metadata></div>
+          <div data-report-view></div>
+
+          <h3>Storico</h3>
+          <div data-report-history></div>
+        </div>
+
+        <!-- Credenziali: accessi ad account, utente + password -->
+        <div class="panel" data-panel="credenziali" hidden>
+          <p class="muted">
+            Utente e password dei profili del cliente: social, posta, dominio, pannelli.
+            Le password sono cifrate; il resto resta leggibile per poterle cercare.
+          </p>
+          <div data-accounts></div>
+          <div class="form-actions">
+            <button class="btn" type="button" data-action="add-account">+ Aggiungi accesso</button>
+          </div>
+        </div>
+
+        <div class="panel" data-panel="note" hidden>
+          <form class="form" data-form="note">
+            <label>
+              Note interne
+              <textarea name="notes" rows="14" placeholder="Contesto, accessi, TODO, storico…"></textarea>
+            </label>
+            <div class="form-actions">
+              <button class="btn primary" type="submit">Salva note</button>
+              <span class="saved" data-saved hidden>Salvato ✓</span>
+            </div>
+          </form>
+        </div>
+      </section>
+    </template>
+
+    <!-- Vista impostazioni: credenziali a livello agenzia -->
+    <template id="tpl-settings">
+      <section class="page">
+        <div class="page-head">
+          <div>
+            <h1>Impostazioni</h1>
+            <p class="muted">
+              Credenziali API a livello agenzia: una copia per tutto il portafoglio.
+              Cifrate con la stessa chiave delle credenziali per cliente.
+            </p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div data-agency-locked hidden>
+            <div class="placeholder">
+              <h3>Vault bloccato</h3>
+              <p>Le credenziali d'agenzia sono cifrate: sbloccalo per vederle o modificarle.</p>
+              <button class="btn primary" data-action="unlock-agency">Sblocca vault</button>
+            </div>
+          </div>
+          <div data-agency-list hidden></div>
+        </div>
+
+        <div class="panel">
+          <h3 style="margin-top: 0">Definizioni report</h3>
+          <p class="muted">
+            Quali metriche e dimensioni vengono chieste a GA4, per archetipo. Sono file in
+            <code>reporting/definitions/</code>: modificali con un editor e salva, la dashboard
+            li ricarica da sola. Usa i nomi della Data API, gli stessi che scegli in Esplora.
+          </p>
+          <div data-definitions></div>
+        </div>
+      </section>
+    </template>
+
+    <!-- Vista backup -->
+    <template id="tpl-backup">
+      <section class="page">
+        <div class="page-head">
+          <div>
+            <h1>Backup</h1>
+            <p class="muted">
+              Snapshot dell'intero database, cifrato con la stessa chiave delle credenziali.
+              Senza la master password il file è inutilizzabile.
+            </p>
+          </div>
+          <div class="page-actions">
+            <button class="btn primary" data-action="backup-now">Backup ora</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <h3>Cartella di destinazione</h3>
+          <form class="form" data-form="backup-dir">
+            <label>
+              Percorso
+              <input name="dir" autocomplete="off" spellcheck="false" />
+              <small class="muted" data-dir-hint></small>
+            </label>
+            <div class="form-actions">
+              <button class="btn" type="submit">Salva cartella</button>
+              <span class="saved" data-saved hidden>Salvato ✓</span>
+            </div>
+          </form>
+
+          <div class="notice" data-dir-warning hidden></div>
+
+          <h3>Backup presenti</h3>
+          <p class="muted" data-backup-summary></p>
+          <div class="table-wrap" data-backup-table hidden>
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>File</th>
+                  <th>Data</th>
+                  <th>Dimensione</th>
+                </tr>
+              </thead>
+              <tbody data-backup-rows></tbody>
+            </table>
+          </div>
+
+          <h3>Come si ripristina</h3>
+          <p class="muted">
+            Lo script chiede la master password e riscrive un <code>.db</code> apribile.
+            Funziona anche senza il resto dell'applicazione.
+          </p>
+          <pre class="code">npm run backup:decrypt -- "percorso\del\backup.tbenc"</pre>
+        </div>
+      </section>
+    </template>
+
+    <!-- Dialog vault: setup, unlock o reset a seconda dello stato -->
+    <dialog id="dlg-vault">
+      <form class="form" method="dialog" data-form="vault">
+        <h2 data-vault-title></h2>
+        <p class="muted" data-vault-blurb></p>
+
+        <label>
+          <span data-vault-label>Master password</span>
+          <input name="password" type="password" autocomplete="off" />
+        </label>
+        <label data-vault-confirm-wrap hidden>
+          Ripeti la password
+          <input name="confirm" type="password" autocomplete="off" />
+        </label>
+
+        <div class="notice danger" data-vault-warning hidden></div>
+        <p class="error" data-error hidden></p>
+
+        <div class="form-actions">
+          <button class="btn ghost" type="button" data-action="vault-cancel">Annulla</button>
+          <button class="btn primary" type="submit" data-vault-submit></button>
+        </div>
+        <button class="link-btn" type="button" data-action="vault-goto-reset" hidden>
+          Password dimenticata? Reimposta il vault
+        </button>
+      </form>
+    </dialog>
+
+    <!-- Dialog nuovo cliente -->
+    <dialog id="dlg-new">
+      <form class="form" method="dialog" data-form="new">
+        <h2>Nuovo cliente</h2>
+        <label>
+          Nome cliente *
+          <input name="name" required autocomplete="off" placeholder="es. Nome del cliente" />
+        </label>
+        <label>
+          Archetipo
+          <select name="archetype" data-archetypes></select>
+          <small class="muted">Precarica il template tracking e i canali pertinenti.</small>
+        </label>
+        <label>
+          CMS / piattaforma
+          <select name="cms" data-cms-select></select>
+        </label>
+        <label>
+          ID container GTM
+          <input name="gtm_container_id" placeholder="GTM-XXXXXXX" autocomplete="off" />
+        </label>
+        <p class="error" data-error hidden></p>
+        <div class="form-actions">
+          <button class="btn ghost" type="button" data-action="cancel">Annulla</button>
+          <button class="btn primary" type="submit">Crea cliente</button>
+        </div>
+      </form>
+    </dialog>
+
+    <script type="module" src="/js/app.js"></script>
+  </body>
+</html>

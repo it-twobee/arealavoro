@@ -1,0 +1,74 @@
+{
+  "archetype": "leadgen-b2b",
+  "title": "Lead gen B2B — 30 giorni",
+  "version": 2,
+  "note": "Quattro sezioni specifiche per il B2B. L'evento del funnel si imposta per cliente nella scheda Report (vuoto = generate_lead). I nomi di metriche e dimensioni sono quelli della GA4 Data API: se una property non ha keyEvents (proprietà più vecchie) sostituiscilo con conversions in questo file.",
+  "ga4": {
+    "totals": {
+      "metrics": [
+        "sessions",
+        "activeUsers",
+        "newUsers",
+        "engagedSessions",
+        "engagementRate",
+        "keyEvents",
+        "eventCount"
+      ]
+    },
+    "funnels": [
+      {
+        "id": "funnel",
+        "title": "1. Funnel di conversione",
+        "dimensions": ["sessionDefaultChannelGroup"],
+        "dimensionLabel": "canale",
+        "step1Label": "Visita sito",
+        "step2Label": "Lead generato",
+        "limit": 20
+      }
+    ],
+    "breakdowns": [
+      {
+        "id": "sorgenti",
+        "title": "2. Traffico per sorgente",
+        "dimensions": ["sessionDefaultChannelGroup", "sessionSourceMedium", "sessionCampaignName"],
+        "metrics": ["sessions", "activeUsers", "keyEvents", "engagementRate"],
+        "orderBy": "sessions",
+        "limit": 10
+      },
+      {
+        "id": "eventi",
+        "title": "3. Eventi personalizzati",
+        "dimensions": ["eventName"],
+        "metrics": ["eventCount", "activeUsers"],
+        "orderBy": "eventCount",
+        "limit": 30
+      },
+      {
+        "id": "pagine",
+        "title": "4. Pagine più visitate",
+        "dimensions": ["unifiedPagePathScreen"],
+        "metrics": ["screenPageViews", "activeUsers", "engagementRate", "keyEvents"],
+        "orderBy": "screenPageViews",
+        "limit": 10
+      }
+    ],
+    "eventParameters": [
+      {
+        "id": "piano-selezionato",
+        "title": "3b. Piano selezionato (click_pricing_plan)",
+        "eventName": "click_pricing_plan",
+        "dimension": "customEvent:piano_selezionato",
+        "metrics": ["eventCount", "activeUsers"],
+        "limit": 20
+      },
+      {
+        "id": "linkedin-target",
+        "title": "3c. LinkedIn Target",
+        "eventName": "generate_lead",
+        "dimension": "customEvent:linkedin_target",
+        "metrics": ["eventCount", "activeUsers"],
+        "limit": 20
+      }
+    ]
+  }
+}

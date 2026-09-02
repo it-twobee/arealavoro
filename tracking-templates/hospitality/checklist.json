@@ -1,0 +1,140 @@
+{
+  "archetype": "hospitality",
+  "title": "Hospitality",
+  "version": 1,
+  "note": "Checklist di setup tracking per strutture ricettive. Il punto critico è quasi sempre il passaggio al booking engine esterno. Gli id delle voci sono usati come chiave a DB: non rinominarli, al massimo aggiungine di nuovi.",
+  "sections": [
+    {
+      "id": "config",
+      "title": "Configurazione base",
+      "items": [
+        {
+          "id": "gtm-installed",
+          "title": "Container GTM installato",
+          "detail": "Snippet head + noscript body su tutte le pagine del sito vetrina."
+        },
+        {
+          "id": "ga4-config",
+          "title": "Tag di configurazione GA4",
+          "detail": "Google Tag con Measurement ID, trigger All Pages."
+        },
+        {
+          "id": "cross-domain-booking",
+          "title": "Cross-domain verso il booking engine",
+          "detail": "Il dato più importante di tutto il setup. Il dominio del booking engine (Simplebooking, Blastness, Booking Expert, Scidoo…) va elencato nei domini configurati di GA4 e il gtag deve girare anche lì, altrimenti ogni prenotazione risulta una sessione nuova e l'attribuzione si perde."
+        },
+        {
+          "id": "referral-exclusion",
+          "title": "Esclusione referral del booking engine",
+          "detail": "Senza questa, le conversioni vengono attribuite al booking engine stesso invece che al canale di acquisizione."
+        },
+        {
+          "id": "internal-traffic",
+          "title": "Filtro traffico interno",
+          "detail": "IP struttura e agenzia esclusi. In hospitality il personale in reception genera molto traffico falso."
+        },
+        {
+          "id": "multilang",
+          "title": "Versioni linguistiche coperte",
+          "detail": "Verificare che il container sia presente su tutte le lingue del sito, non solo sull'italiano."
+        }
+      ]
+    },
+    {
+      "id": "ga4-events",
+      "title": "Eventi GA4",
+      "items": [
+        {
+          "id": "ev-booking-start",
+          "title": "Apertura del booking engine",
+          "detail": "Click su 'Verifica disponibilità' o apertura del widget. È il begin_checkout dell'hospitality."
+        },
+        {
+          "id": "ev-availability-search",
+          "title": "Ricerca disponibilità",
+          "detail": "Con date e numero ospiti come parametri, dove il widget li espone."
+        },
+        {
+          "id": "ev-room-view",
+          "title": "Visualizzazione camera",
+          "detail": "view_item sulle schede camera/suite."
+        },
+        {
+          "id": "ev-booking-confirmed",
+          "title": "Prenotazione confermata",
+          "detail": "purchase sulla pagina di conferma del booking engine, con value e transaction_id. Se il booking engine non espone un dataLayer, va chiesta al fornitore l'attivazione del tracciamento o usata la thank-you page."
+        },
+        {
+          "id": "ev-phone-click",
+          "title": "Click su telefono",
+          "detail": "Trigger su link tel:. In hospitality molte prenotazioni passano ancora dal telefono."
+        },
+        {
+          "id": "ev-email-click",
+          "title": "Click su email",
+          "detail": "Trigger su link mailto:."
+        },
+        {
+          "id": "ev-whatsapp-click",
+          "title": "Click su WhatsApp"
+        },
+        {
+          "id": "ev-map-click",
+          "title": "Click su indicazioni/mappa",
+          "detail": "Segnale di visita imminente, utile per il locale."
+        },
+        {
+          "id": "ev-menu-download",
+          "title": "Download menu o brochure",
+          "detail": "Dove presenti: ristorante, sale eventi, listino matrimoni."
+        },
+        {
+          "id": "mark-conversions",
+          "title": "Eventi marcati come conversioni",
+          "detail": "Prenotazione confermata, apertura booking engine e click telefono come key event."
+        }
+      ]
+    },
+    {
+      "id": "meta",
+      "title": "Meta Pixel",
+      "items": [
+        {
+          "id": "meta-base",
+          "title": "Pixel base via GTM"
+        },
+        {
+          "id": "meta-events",
+          "title": "ViewContent, InitiateCheckout, Purchase",
+          "detail": "ViewContent sulle camere, InitiateCheckout all'apertura del booking, Purchase sulla conferma. Il Purchase richiede il pixel anche sul dominio del booking engine."
+        }
+      ]
+    },
+    {
+      "id": "qa",
+      "title": "Consenso e collaudo",
+      "items": [
+        {
+          "id": "consent-mode",
+          "title": "Consent Mode v2 + CMP",
+          "detail": "Consenso di default 'denied', tag in attesa."
+        },
+        {
+          "id": "preview-debug",
+          "title": "Collaudo in GTM Preview e GA4 DebugView",
+          "detail": "Percorrere il flusso completo fino alla conferma, verificando che la sessione non si interrompa al passaggio di dominio."
+        },
+        {
+          "id": "attribution-check",
+          "title": "Verifica attribuzione prenotazioni",
+          "detail": "Controllare che le prenotazioni non risultino tutte 'direct' o referral dal booking engine: è il sintomo classico di cross-domain non configurato."
+        },
+        {
+          "id": "booking-match",
+          "title": "Riconciliazione con il gestionale",
+          "detail": "Confronto prenotazioni nel PMS vs purchase GA4 su 30 giorni."
+        }
+      ]
+    }
+  ]
+}

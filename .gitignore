@@ -1,0 +1,26 @@
+node_modules/
+
+# DB locale — non versionare (contiene credenziali cifrate e dati cliente)
+twobee.db
+twobee.db-wal
+twobee.db-shm
+*.db
+
+# Elenco clienti iniziale: nomi reali e container GTM, dati d'esercizio
+clients/seed.json
+
+# output generati
+reporting/output/*
+!reporting/output/.gitkeep
+# backup cifrati: contengono l'intero DB, non vanno versionati
+*.tbenc
+backup/local/
+backup/*.db
+backup/*.zip
+
+.env
+.DS_Store
+Thumbs.db
+
+# registra i comandi approvati: può catturare segreti passati a riga di comando
+.claude/settings.local.json

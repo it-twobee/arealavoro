@@ -1,0 +1,54 @@
+{
+  "archetype": "hospitality",
+  "title": "Hospitality — panoramica 30 giorni",
+  "version": 1,
+  "note": "Metriche e dimensioni usano i nomi della GA4 Data API, gli stessi che scegli in Esplora. Attenzione: se il cross-domain verso il booking engine non è configurato, il breakdown per canale mostrerà quasi tutto come direct o referral.",
+  "ga4": {
+    "totals": {
+      "metrics": [
+        "sessions",
+        "totalUsers",
+        "newUsers",
+        "engagedSessions",
+        "engagementRate",
+        "averageSessionDuration",
+        "screenPageViews",
+        "eventCount"
+      ]
+    },
+    "breakdowns": [
+      {
+        "id": "canale",
+        "title": "Per canale di acquisizione",
+        "dimensions": ["sessionDefaultChannelGroup"],
+        "metrics": ["sessions", "engagedSessions", "engagementRate", "eventCount"],
+        "orderBy": "sessions",
+        "limit": 15
+      },
+      {
+        "id": "eventi",
+        "title": "Eventi registrati",
+        "dimensions": ["eventName"],
+        "metrics": ["eventCount", "totalUsers"],
+        "orderBy": "eventCount",
+        "limit": 25
+      },
+      {
+        "id": "paese",
+        "title": "Per paese",
+        "dimensions": ["country"],
+        "metrics": ["sessions", "engagedSessions"],
+        "orderBy": "sessions",
+        "limit": 15
+      },
+      {
+        "id": "lingua",
+        "title": "Per lingua del sito",
+        "dimensions": ["pagePath"],
+        "metrics": ["screenPageViews", "sessions"],
+        "orderBy": "screenPageViews",
+        "limit": 20
+      }
+    ]
+  }
+}
