@@ -1,15 +1,16 @@
 import express from 'express';
 import { db } from '../db.js';
-import {
-  ARCHETYPE_VALUES,
-  CHANNEL_KEYS,
-  STATUS_VALUES,
-  archetypeByValue,
-  trackingBadge,
-} from '../archetypes.js';
-
+import { CHANNEL_KEYS, archetypeByValue, trackingBadge } from '../archetypes.js';
 import { HttpError } from '../http-error.js';
-import { normalizeUrl } from '../site-check.js';
+import {
+  normalizeUrl,
+  parseArchetype,
+  parseGa4PropertyId,
+  parseGtmContainerId,
+  parseLeadEvent,
+  parseMetaPixelId,
+  parseStatus,
+} from '../../lib/tracking/validate.ts';
 
 export const router = express.Router();
 
@@ -47,63 +48,28 @@ function findOr404(id) {
 function sanitize(body, { partial }) {
   const out = {};
 
+  // I validatori vengono dal nucleo condiviso: stesse regole e stessi messaggi
+  // del CRM. Lanciano un errore con status 400 se il valore non va bene.
+  const parsers = {
+    archetype: parseArchetype,
+    gtm_container_id: parseGtmContainerId,
+    website_url: normalizeUrl,
+    lead_event: parseLeadEvent,
+    meta_pixel_id: parseMetaPixelId,
+    ga4_property_id: parseGa4PropertyId,
+  };
+
   for (const field of WRITABLE) {
     if (!(field in body)) continue;
-    let value = body[field];
+    const value = body[field];
 
-    if (field === 'archetype') {
-      value = value === '' || value === null || value === undefined ? null : String(value).trim();
-      if (value !== null && !ARCHETYPE_VALUES.includes(value)) {
-        throw new HttpError(400, `Archetipo non valido: ${value}`);
-      }
-    } else if (STATUS_COLUMNS.includes(field)) {
-      value = String(value ?? '').trim();
-      if (!STATUS_VALUES.includes(value)) {
-        throw new HttpError(400, `Stato non valido per ${field}: ${value}`);
-      }
+    if (STATUS_COLUMNS.includes(field)) {
+      out[field] = parseStatus(field, value);
+    } else if (field in parsers) {
+      out[field] = parsers[field](value);
     } else {
-      value = String(value ?? '').trim();
-      if (field === 'gtm_container_id' && value) {
-        if (!/^GTM-[A-Z0-9]{6,}$/i.test(value)) {
-          throw new HttpError(400, 'ID container GTM non valido (formato atteso: GTM-XXXXXXX)');
-        }
-        value = value.toUpperCase();
-      }
-      // Normalizza "sito.it" in "https://sito.it/": la verifica automatica ha
-      // bisogno di un URL assoluto, e così il confronto resta stabile.
-      if (field === 'website_url' && value) value = normalizeUrl(value);
-
-      // Nome di un evento GA4: niente spazi, altrimenti il filtro non troverà
-      // mai nulla e il funnel risulterebbe vuoto senza spiegazione.
-      if (field === 'lead_event' && value && !/^[A-Za-z][A-Za-z0-9_]{0,39}$/.test(value)) {
-        throw new HttpError(
-          400,
-          'Nome evento non valido: lettere, numeri e underscore, senza spazi (es. generate_lead)',
-        );
-      }
-
-      // Il Pixel ID è numerico: capita di incollarci dentro spazi o l'intero
-      // frammento di codice, e un valore sbagliato farebbe fallire il QA ogni giorno.
-      if (field === 'meta_pixel_id' && value) {
-        value = value.replace(/\s+/g, '');
-        if (!/^\d{8,20}$/.test(value)) {
-          throw new HttpError(400, 'Pixel ID Meta non valido: sono solo cifre (es. 1234567890123456)');
-        }
-      }
-
-      // Il Property ID GA4 è solo numerico: si copia spesso come "properties/123"
-      // o "G-XXXX" (che è il Measurement ID, non la property).
-      if (field === 'ga4_property_id' && value) {
-        value = value.replace(/^properties\//, '').trim();
-        if (!/^\d{6,}$/.test(value)) {
-          throw new HttpError(
-            400,
-            'Property ID GA4 non valido: serve il numero della property (es. 123456789), non il Measurement ID G-XXXX',
-          );
-        }
-      }
+      out[field] = String(value ?? '').trim();
     }
-    out[field] = value;
   }
 
   if (!partial) {

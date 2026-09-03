@@ -8,20 +8,27 @@
     "node": ">=23.4.0"
   },
   "scripts": {
-    "start": "node app/server.js",
-    "dev": "node --watch-path=app app/server.js",
-    "db:reset": "node app/db.js --reset",
-    "backup:decrypt": "node backup/decrypt.js",
-    "doctor": "node app/doctor.js",
-    "user:list": "node app/user-cli.js list",
-    "user:add": "node app/user-cli.js add",
-    "user:password": "node app/user-cli.js password",
-    "user:remove": "node app/user-cli.js remove",
-    "qa": "node qa/daily-check.js",
-    "extract:klaviyo": "node reporting/extract/klaviyo.js",
-    "extract:meta": "node reporting/extract/meta.js"
+    "start": "tsx app/server.js",
+    "dev": "tsx watch --clear-screen=false --exclude 'twobee.db*' --exclude 'backup/**' app/server.js",
+    "typecheck": "tsc --noEmit",
+    "check": "node scripts/check.mjs",
+    "db:reset": "tsx app/db.js --reset",
+    "backup:decrypt": "tsx backup/decrypt.js",
+    "doctor": "tsx app/doctor.js",
+    "user:list": "tsx app/user-cli.js list",
+    "user:add": "tsx app/user-cli.js add",
+    "user:password": "tsx app/user-cli.js password",
+    "user:remove": "tsx app/user-cli.js remove",
+    "qa": "tsx qa/daily-check.js",
+    "extract:klaviyo": "tsx reporting/extract/klaviyo.js",
+    "extract:meta": "tsx reporting/extract/meta.js"
   },
   "dependencies": {
-    "express": "^5.1.0"
+    "express": "^5.1.0",
+    "tsx": "^4.23.13"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "typescript": "^5"
   }
 }

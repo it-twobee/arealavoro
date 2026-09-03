@@ -7,7 +7,8 @@ Gira **solo in locale**, nessun hosting esterno.
 
 | Pezzo    | Scelta                                                              |
 | -------- | ------------------------------------------------------------------- |
-| Backend  | Node 24 + Express 5                                                 |
+| Backend  | Node 24 + Express 5, avviato con `tsx` (i `.js` importano i `.ts`)  |
+| Nucleo   | `lib/tracking/*.ts`, logica pura condivisa col CRM TwoBee OS        |
 | DB       | SQLite via `node:sqlite` (built-in, nessuna compilazione nativa)     |
 | Frontend | HTML/CSS/JS vanilla, nessun build step, tema chiaro/scuro           |
 | File DB  | `twobee.db` nella root, **non versionato**                          |
@@ -16,14 +17,20 @@ Gira **solo in locale**, nessun hosting esterno.
 
 ```bash
 npm install
-npm start        # per usarla
-npm run dev      # per svilupparla (riparte a ogni modifica in app/)
+npm start          # per usarla
+npm run dev        # per svilupparla (riparte a ogni modifica)
+npm run check      # controlli del nucleo condiviso (lib/tracking/*.check.ts)
+npm run typecheck  # TypeScript strict su lib/
 ```
 
-**Usa `npm start`, non `npm run dev`.** `dev` osserva la cartella `app/` e riavvia
-il server a ogni salvataggio, anche dei file del frontend: durante il riavvio la
+**Usa `npm start`, non `npm run dev`.** `dev` osserva i file e riavvia il
+server a ogni salvataggio, anche dei file del frontend: durante il riavvio la
 pagina non carica per qualche secondo, e se una modifica è a metà si vede una
 pagina bianca. `start` resta su e non si muove.
+
+Entrambi passano da `tsx`, che permette ai file JavaScript in `app/` di
+importare direttamente i moduli TypeScript di `lib/tracking/` senza passaggio
+di compilazione: per chi usa l'app non cambia niente, `npm start` è lo stesso.
 
 Se qualcosa non torna, <http://localhost:3000/controllo> è una pagina generata
 dal server **senza JavaScript**: se si vede, server e dati sono a posto e il
@@ -38,10 +45,10 @@ vuota. Non è versionato, perché contiene nomi di clienti reali.
 npm run db:reset   # cancella twobee.db e lo ricrea dal seed
 ```
 
-`dev` usa `--watch-path=app` e non `--watch` per un motivo preciso: `--watch`
-osserva anche `twobee.db`, quindi **ogni scrittura sul database riavviava il
-server**, buttando via la chiave di cifratura tenuta in memoria e richiudendo il
-vault a ogni salvataggio.
+`dev` esclude `twobee.db*` e `backup/` dai file osservati per un motivo preciso:
+osservando anche il database, **ogni scrittura riavviava il server**, buttando
+via la chiave di cifratura tenuta in memoria e richiudendo il vault a ogni
+salvataggio.
 
 ## Tema
 
@@ -64,39 +71,86 @@ illeggibile su bianco.
 ## Struttura
 
 ```
-app/                    dashboard (backend + frontend)
-  archetypes.js         vocabolario condiviso: archetipi, canali, stati, piattaforme
+lib/                    NUCLEO CONDIVISO col CRM (TypeScript puro, copiato 1:1)
+  tracking/
+    errors.ts           TrackingError con status HTTP
+    vocab.ts            archetipi, canali, stati, piattaforme, servizi, controlli QA
+    validate.ts         validatori dei campi cliente (URL, GTM, Pixel, Property ID…)
+    crypto.ts           AES-256-GCM con VAULT_KEY (usato dal CRM; qui resta vault.js)
+    site-check.ts       fetch della homepage, riconoscimento tag, politica degli stati
+    checklist.ts        template checklist + avanzamento, con templates/*.json
+    ga4.ts              GA4 Data API: JWT RS256, token, runReport
+    meta.ts             Meta Marketing API: insight, azioni, pixel
+    klaviyo.ts          Klaviyo API: flussi live, metrica conversione, report
+    reporting.ts        definizioni, periodo, congelamento, lettura del run, con definitions/*.json
+    csv.ts              CSV dei dati grezzi
+    qa-checks.ts        i tre controlli del QA giornaliero
+    *.check.ts          controlli eseguibili di ogni modulo (npm run check)
+  types/database.ts     tipi delle tabelle Tracking (blocco §316 del CRM)
+scripts/check.mjs       esegue tutti i *.check.ts in sequenza
+app/                    HOST: SQLite + Express + frontend (JavaScript)
+  archetypes.js         riesporta vocab.ts e costruisce /api/meta (emoji, icone)
   db.js                 SQLite + migrazioni versionate + seed
   config.js             interruttori da ambiente (TWOBEE_AUTH)
   auth.js               accesso: utenti, password, sessioni
   doctor.js             diagnostica accesso e ambiente
   user-cli.js           gestione account da riga di comando
   vault.js              master password, derivazione chiave, cifratura
-  checklist.js          caricamento template + avanzamento per cliente
-  site-check.js         verifica tracking scaricando l'HTML del sito
-  qa.js                 controllo giornaliero + pianificatore interno
-  ga4.js                GA4 Data API: JWT RS256, token, runReport
-  klaviyo.js            Klaviyo API: flussi live, metrica conversione, report
-  meta.js               Meta Marketing API: insight, azioni, pixel
-  reporting.js          definizioni, esecuzione, normalizzazione, CSV
+  checklist.js          avanzamento checklist per cliente (SQLite) su checklist.ts
+  site-check.js         applica la verifica di site-check.ts e tiene lo storico
+  qa.js                 salva gli esiti di qa-checks.ts + pianificatore interno
+  ga4.js / meta.js / klaviyo.js   riesportano i client di lib/tracking
+  reporting.js          credenziali agenzia, esecuzione, scrittura run/righe
   backup.js             snapshot cifrato + cartella + hook di chiusura
   routes/               clients, credentials, tracking, reporting, agency, vault, backup
   public/               frontend statico
     img/                logo nelle due varianti di tema
 clients/seed.json       elenco clienti iniziale (non versionato)
 reporting/
-  definitions/          quali metriche/dimensioni chiedere, per archetipo
   extract/klaviyo.js    estrazione Klaviyo da riga di comando
   extract/meta.js       estrazione Meta Ads da riga di comando
   normalize/            unificazione in schema comune
   output/               report generati (non versionati)
-tracking-templates/     checklist.json per archetipo
 qa/daily-check.js       controllo QA da riga di comando
 klaviyo-flows/          libreria flussi (contenuto, non solo codice)
 backup/
   decrypt.js            ripristino di un .tbenc (autonomo, nessun import da app/)
   local/                backup generati, se non è configurata una cartella cloud
+tsconfig.json           TypeScript strict per lib/, alias @/ → radice del repo
+CLAUDE.md               regole per chi sviluppa qui (dove va la logica, cosa non toccare)
 ```
+
+## Nucleo condiviso col CRM
+
+Questo repo è il **laboratorio** del modulo Tracking di TwoBee OS: il CRM
+(Next.js + Supabase) è la produzione. Perché la stessa logica non venga scritta
+due volte e diverga, la parte pura vive in `lib/tracking/*.ts` ed è **identica
+byte per byte** nei due repo: qui si sviluppa e si prova con SQLite, poi la
+cartella si copia nel CRM così com'è.
+
+Cosa è condiviso: vocabolario (archetipi, canali, stati, piattaforme, servizi),
+validatori, verifica del sito e politica degli stati, checklist e relativi
+template JSON, client GA4/Meta/Klaviyo, definizioni report e lettura dei run,
+CSV, i tre controlli del QA. Cosa resta qui: SQLite, le rotte Express, la UI
+vanilla, il vault con la chiave derivata dalla password, i backup.
+
+Regola pratica: **la logica nuova va in `lib/tracking/` con un `.check.ts`
+accanto; il file in `app/` la importa e la collega al database e alla UI.**
+Il nucleo non importa niente fuori da `lib/` (niente `node:sqlite`, niente
+Express), altrimenti nel CRM non compila.
+
+```bash
+npm run check        # tutti i lib/tracking/*.check.ts, uno dopo l'altro
+npm run typecheck    # tsc --noEmit, strict
+```
+
+Ogni `.check.ts` è uno script senza framework: stampa `OK`/`NO` riga per riga
+e termina con codice 1 se qualcosa non torna. Si può lanciare anche da solo,
+`npx tsx lib/tracking/reporting.check.ts`.
+
+La UI del CRM non viene copiata ma ricostruita sui suoi componenti: per questo
+in questo README la UI è descritta a parole (cosa mostra, quando, con quali
+stati), e va aggiornata quando cambia un comportamento visibile.
 
 ## Modello dati — `clients`
 
@@ -569,11 +623,12 @@ Limiti del backup automatico alla chiusura, non aggirabili:
 
 ### Checklist per archetipo
 
-Le voci stanno nei file `tracking-templates/<archetipo>/checklist.json`, non a
-DB: si modificano con un editor, restano versionabili e non serve una migrazione
-per aggiungere un controllo. La cache si invalida sull'mtime, quindi basta
-salvare il file — nessun riavvio. A DB va solo l'avanzamento per cliente
-(`checklist_state`: fatto/non fatto + nota).
+Le voci stanno nei file `lib/tracking/templates/<archetipo>.json`, non a DB:
+si modificano con un editor, restano versionabili e non serve una migrazione
+per aggiungere un controllo. I file sono importati staticamente da
+`checklist.ts` (come nel CRM), quindi dopo una modifica serve riavviare il
+server — con `npm run dev` succede da solo. A DB va solo l'avanzamento per
+cliente (`checklist_state`: fatto/non fatto + nota).
 
 Contenuto attuale: e-commerce 27 voci, lead gen B2B 25, hospitality 22, divise
 per sezioni (configurazione, variabili, eventi, canali, collaudo).
@@ -658,9 +713,10 @@ scambiato per un access token, che viene tenuto in cache finché non scade.
 
 ### Definizioni report
 
-`reporting/definitions/<archetipo>.json`, uno per e-commerce / leadgen / hospitality.
+`lib/tracking/definitions/<archetipo>.json`, uno per e-commerce / leadgen / hospitality.
 Metriche e dimensioni si scrivono con i **nomi della GA4 Data API**, gli stessi che
-si scelgono in Esplora. Modificare il file basta: la cache si invalida sull'mtime.
+si scelgono in Esplora. I file sono importati staticamente da `reporting.ts`:
+dopo una modifica si riavvia il server (`npm run dev` lo fa da solo).
 
 Attenzione: le esplorazioni salvate in GA4 **non sono leggibili via API**. La Data
 API esegue query che le si passano; non esiste un modo per aprire un'esplorazione

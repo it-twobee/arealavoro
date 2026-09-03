@@ -70,7 +70,7 @@ const MIGRATIONS = [
         ALTER TABLE clients ADD COLUMN website_url TEXT NOT NULL DEFAULT '';
 
         -- Stato di avanzamento della checklist, per cliente e per voce.
-        -- Le voci NON stanno qui: vivono nei file tracking-templates/, così la
+        -- Le voci NON stanno qui: vivono nei file lib/tracking/templates/, così la
         -- checklist si aggiorna senza migrazioni e resta versionabile.
         CREATE TABLE checklist_state (
           client_id  INTEGER NOT NULL,

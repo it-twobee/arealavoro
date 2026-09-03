@@ -834,7 +834,7 @@ function renderVerifyResult(container, result, qaChecks = []) {
 
   const ga4InHtml = found.ga4Ids.length
     ? found.ga4Ids.join(', ')
-    : found.gtagDirect
+    : found.gtagLoaded
       ? 'gtag.js diretto'
       : null;
 
@@ -862,8 +862,8 @@ function renderVerifyResult(container, result, qaChecks = []) {
   const rows = [
     chip('GTM', found.gtmIds.length ? found.gtmIds.join(', ') : null),
     ga4Chip,
-    chip('Meta Pixel', found.metaIds.length ? found.metaIds.join(', ') : found.metaScript ? 'fbevents.js' : null),
-    chip('Klaviyo', found.klaviyo ? (found.klaviyoId ?? 'script presente') : null),
+    chip('Meta Pixel', found.metaIds.length ? found.metaIds.join(', ') : found.fbevents ? 'fbevents.js' : null),
+    chip('Klaviyo', found.klaviyo ? 'script presente' : null),
   ];
 
   container.innerHTML = `
