@@ -1,190 +1,86 @@
-// Vocabolario condiviso backend/frontend: archetipi, canali di tracking, stati.
-// Il frontend lo riceve via GET /api/meta, così esiste una sola fonte di verità.
+// Vocabolario condiviso backend/frontend: archetipi, canali, stati, piattaforme.
+//
+// La fonte è lib/tracking/vocab.ts, la stessa del CRM. Qui si riesporta tutto
+// e si ricostruisce l'oggetto `meta` che il frontend riceve da GET /api/meta,
+// nella forma che la UI vanilla si aspetta: il vocabolario parla di "toni"
+// (success/warning/error/muted), la UI vuole le emoji dei pallini e le icone
+// dei servizi. Quelle mappe restano qui, perché sono un dettaglio di questa UI.
 
-/** Stati usati da tutti i campi status_* */
-export const STATUSES = [
-  { value: 'active', label: 'Attivo', dot: '🟢' },
-  { value: 'partial', label: 'Parziale', dot: '🟡' },
-  { value: 'todo', label: 'Da fare', dot: '🔴' },
-  { value: 'na', label: 'Non applicabile', dot: '⚪' },
-];
+export * from '../lib/tracking/vocab.ts';
 
-export const STATUS_VALUES = STATUSES.map((s) => s.value);
+import {
+  ACCOUNT_SERVICES,
+  AGENCY_CREDENTIALS,
+  ARCHETYPES,
+  CHANNELS,
+  CMS_SUGGESTIONS,
+  PLATFORMS,
+  STATUSES,
+} from '../lib/tracking/vocab.ts';
 
-/** Canali di tracking gestiti. La chiave corrisponde alla colonna status_<key>. */
-export const CHANNELS = [
-  { key: 'gtm', label: 'Google Tag Manager' },
-  { key: 'ga4', label: 'GA4' },
-  { key: 'meta_pixel', label: 'Meta Pixel' },
-  { key: 'klaviyo', label: 'Klaviyo' },
-];
+/** Tono semantico del vocabolario → emoji del pallino nella UI. */
+export const TONE_EMOJI = {
+  success: '🟢',
+  warning: '🟡',
+  error: '🔴',
+  muted: '⚪',
+};
 
-export const CHANNEL_KEYS = CHANNELS.map((c) => c.key);
+/** Icone dei servizi per il menu degli accessi. Chi manca prende 🔑. */
+const SERVICE_ICONS = {
+  instagram: '📷',
+  facebook: '👍',
+  meta_business: '🏢',
+  tiktok: '🎵',
+  linkedin: '💼',
+  whatsapp_business: '💬',
+  google_business: '📍',
+  google_ads: '🅖',
+  analytics: '📊',
+  search_console: '🔎',
+  gtm: '🏷️',
+  google_merchant: '🛒',
+  gmail: '✉️',
+  webmail: '📬',
+  brevo: '📮',
+  klaviyo: '📨',
+  mailchimp: '🐵',
+  tharvel: '🧩',
+  cms: '⚙️',
+  shopify: '🛍️',
+  dominio: '🌐',
+  dns: '🧭',
+  hosting: '🗄️',
+  ftp: '📁',
+  stripe: '💳',
+  paypal: '🅿️',
+  altro: '🔑',
+};
 
-/**
- * Archetipi cliente. `channels` = canali rilevanti per quell'archetipo
- * (gli altri vengono precompilati a 'na' alla creazione).
- * `templateDir` punta alla cartella in tracking-templates/ (usata dal modulo 3).
- */
-export const ARCHETYPES = [
-  {
-    value: 'ecommerce',
-    label: 'E-commerce',
-    templateDir: 'ecommerce-shopify',
-    channels: ['gtm', 'ga4', 'meta_pixel', 'klaviyo'],
-  },
-  {
-    value: 'leadgen-b2b',
-    label: 'Lead gen B2B',
-    templateDir: 'leadgen-b2b',
-    channels: ['gtm', 'ga4', 'meta_pixel'],
-  },
-  {
-    value: 'hospitality',
-    label: 'Hospitality',
-    templateDir: 'hospitality',
-    channels: ['gtm', 'ga4', 'meta_pixel'],
-  },
-];
+/** Stati con il pallino: la UI li usa nelle select e nei badge. */
+export const STATUSES_WITH_DOT = STATUSES.map((s) => ({ ...s, dot: TONE_EMOJI[s.tone] ?? '⚪' }));
 
-export const ARCHETYPE_VALUES = ARCHETYPES.map((a) => a.value);
-
-/**
- * Piattaforme per cui si conserva una credenziale cifrata (modulo 2).
- * La chiave finisce nella colonna `platform` della tabella credentials.
- */
-export const PLATFORMS = [
-  { key: 'ga4', label: 'GA4', hint: 'Measurement ID / API secret' },
-  { key: 'google_ads', label: 'Google Ads', hint: 'Customer ID, es. 123-456-7890' },
-  // Il token di accesso Meta è uno solo per tutta l'agenzia e sta in
-  // Impostazioni: qui serve l'identificativo dell'ad account di questo cliente.
-  { key: 'meta', label: 'Meta — Ad Account ID', hint: 'Ad Account ID, es. act_1234567890' },
-  { key: 'klaviyo', label: 'Klaviyo', hint: 'Private API key' },
-];
-
-export const PLATFORM_KEYS = PLATFORMS.map((p) => p.key);
-
-/**
- * Servizi suggeriti per gli accessi ad account di un cliente (utente+password).
- * È un elenco di comodo, non una gabbia: `service` accetta qualsiasi testo, così
- * si aggiunge un servizio nuovo senza toccare il codice.
- */
-export const ACCOUNT_SERVICES = [
-  { key: 'instagram', label: 'Instagram', icon: '📷' },
-  { key: 'facebook', label: 'Facebook', icon: '👍' },
-  { key: 'meta_business', label: 'Meta Business Suite', icon: '🏢' },
-  { key: 'tiktok', label: 'TikTok', icon: '🎵' },
-  { key: 'linkedin', label: 'LinkedIn', icon: '💼' },
-  { key: 'gmail', label: 'Gmail / account Google', icon: '✉️' },
-  { key: 'webmail', label: 'Webmail', icon: '📬' },
-  { key: 'dominio', label: 'Dominio / registrar', icon: '🌐' },
-  { key: 'hosting', label: 'Hosting / pannello', icon: '🗄️' },
-  { key: 'cms', label: 'CMS del sito', icon: '⚙️' },
-  { key: 'shopify', label: 'Shopify', icon: '🛍️' },
-  { key: 'klaviyo', label: 'Klaviyo (account)', icon: '📨' },
-  { key: 'google_ads', label: 'Google Ads (account)', icon: '🅖' },
-  { key: 'google_business', label: "Profilo dell'attività", icon: '📍' },
-  { key: 'analytics', label: 'Google Analytics', icon: '📊' },
-  { key: 'search_console', label: 'Search Console', icon: '🔎' },
-  { key: 'gtm', label: 'Google Tag Manager', icon: '🏷️' },
-  { key: 'altro', label: 'Altro', icon: '🔑' },
-];
+/** Servizi con l'icona per il menu. */
+export const ACCOUNT_SERVICES_WITH_ICON = ACCOUNT_SERVICES.map((s) => ({
+  ...s,
+  icon: SERVICE_ICONS[s.key] ?? '🔑',
+}));
 
 export function accountServiceByKey(key) {
-  return ACCOUNT_SERVICES.find((s) => s.key === key) ?? null;
+  return ACCOUNT_SERVICES_WITH_ICON.find((s) => s.key === key) ?? null;
 }
-
-/**
- * Segreti a livello agenzia per il reporting via API (modulo 4). Sono una copia
- * per tutto il portafoglio; il dato che cambia da cliente a cliente è solo
- * l'identificativo in `clientField`, che non è segreto.
- * `implemented: false` = connettore ancora da scrivere: la UI lo mostra ma non
- * lo lascia usare, invece di far finta che funzioni.
- */
-export const AGENCY_CREDENTIALS = [
-  {
-    key: 'ga4',
-    label: 'GA4 — Service Account',
-    kind: 'json',
-    hint: 'Contenuto del file JSON della chiave del service account',
-    clientField: 'ga4_property_id',
-    clientFieldLabel: 'Property ID',
-    clientFieldHint: 'Solo il numero, es. 123456789',
-    implemented: true,
-  },
-  {
-    key: 'google_ads',
-    label: 'Google Ads — Developer + refresh token',
-    kind: 'json',
-    hint: 'JSON con developer_token, client_id, client_secret, refresh_token',
-    clientField: 'google_ads_customer_id',
-    clientFieldLabel: 'Customer ID',
-    clientFieldHint: 'Es. 123-456-7890',
-    implemented: false,
-  },
-  {
-    // Un solo token per tutta l'agenzia. L'Ad Account ID cambia da cliente a
-    // cliente e si inserisce nella scheda Chiavi del cliente, non qui.
-    key: 'meta',
-    label: 'Meta — System User Token',
-    kind: 'text',
-    hint: 'Token del system user con accesso agli ad account',
-    clientField: 'meta_ad_account_id',
-    clientFieldLabel: 'Ad Account ID (nella scheda Chiavi del cliente)',
-    clientFieldHint: 'Es. act_1234567890',
-    implemented: true,
-  },
-];
-
-export const AGENCY_CREDENTIAL_KEYS = AGENCY_CREDENTIALS.map((c) => c.key);
 
 export function agencyCredentialByKey(key) {
   return AGENCY_CREDENTIALS.find((c) => c.key === key) ?? null;
 }
 
-/** Suggerimenti per il campo CMS. */
-export const CMS_SUGGESTIONS = [
-  'Shopify',
-  'WooCommerce',
-  'WordPress',
-  'PrestaShop',
-  'Magento',
-  'Wix',
-  'Squarespace',
-  'Custom',
-];
-
-export function archetypeByValue(value) {
-  return ARCHETYPES.find((a) => a.value === value) ?? null;
-}
-
-/** Canali rilevanti per un archetipo; senza archetipo assegnato usa il set base. */
-export function channelsFor(archetype) {
-  return archetypeByValue(archetype)?.channels ?? ['gtm', 'ga4', 'meta_pixel'];
-}
-
-/**
- * Badge di sintesi mostrato nella lista clienti.
- * Considera solo i canali rilevanti e non marcati 'na'.
- * GSC resta fuori: è SEO, non tracking.
- */
-export function trackingBadge(client) {
-  const values = channelsFor(client.archetype)
-    .map((key) => client[`status_${key}`])
-    .filter((v) => v && v !== 'na');
-
-  if (values.length === 0) return 'todo';
-  if (values.every((v) => v === 'active')) return 'active';
-  if (values.some((v) => v === 'active' || v === 'partial')) return 'partial';
-  return 'todo';
-}
-
 export const meta = {
-  statuses: STATUSES,
+  statuses: STATUSES_WITH_DOT,
   channels: CHANNELS,
-  archetypes: ARCHETYPES,
+  // `templateDir` è il nome storico di `templateKey`: la UI lo legge così.
+  archetypes: ARCHETYPES.map((a) => ({ ...a, templateDir: a.templateKey })),
   cmsSuggestions: CMS_SUGGESTIONS,
   platforms: PLATFORMS,
   agencyCredentials: AGENCY_CREDENTIALS,
-  accountServices: ACCOUNT_SERVICES,
+  accountServices: ACCOUNT_SERVICES_WITH_ICON,
 };
